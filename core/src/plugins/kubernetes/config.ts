@@ -40,7 +40,7 @@ import type { SyncDefaults } from "./sync.js"
 import { syncDefaultsSchema } from "./sync.js"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import { DOCS_BASE_URL } from "../../constants.js"
-import { defaultKanikoImageName, defaultSystemNamespace } from "./constants.js"
+import { defaultKanikoImageName, defaultNixImageName, defaultSystemNamespace } from "./constants.js"
 import type { LocalKubernetesClusterType } from "./local/config.js"
 import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
 
@@ -138,6 +138,20 @@ export interface KubernetesConfig extends BaseProviderConfig {
     pushViaCluster?: boolean
   }
   kaniko?: {
+    image?: string
+    extraFlags?: string[]
+    namespace?: string | null
+    nodeSelector?: StringMap
+    tolerations?: V1Toleration[]
+    annotations?: StringMap
+    serviceAccountAnnotations?: StringMap
+    util?: {
+      tolerations?: V1Toleration[]
+      annotations?: StringMap
+      nodeSelector?: StringMap
+    }
+  }
+  nix?: {
     image?: string
     extraFlags?: string[]
     namespace?: string | null
@@ -412,11 +426,11 @@ export const kubernetesConfigBase = () =>
     .keys({
       buildMode: joi
         .string()
-        .valid("local-docker", "kaniko", "cluster-buildkit")
+        .valid("local-docker", "kaniko", "cluster-buildkit", "nix")
         .default("local-docker")
         .description(
           dedent`
-        Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\` or \`kaniko\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
+        Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\`, \`kaniko\`, or \`nix\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
         For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](${DOCS_BASE_URL}/kubernetes-plugins/guides/in-cluster-building).
         `
@@ -591,6 +605,59 @@ export const kubernetesConfigBase = () =>
         })
         .default(() => {})
         .description("Configuration options for the `kaniko` build mode."),
+      nix: joi
+        .object()
+        .keys({
+          extraFlags: joi
+            .sparseArray()
+            .items(joi.string())
+            .description(
+              `Specify extra flags to pass to \`nix-build\`.`
+            ),
+          image: joi
+            .string()
+            .default(defaultNixImageName)
+            .description(`Change the nix image (repository/image:tag) to use when building in Nix mode.`),
+          namespace: joi
+            .string()
+            .allow(null)
+            .description(
+              dedent`
+              Choose the namespace where the Nix pods will be run. Defaults to the project namespace.
+            `
+            ),
+          nodeSelector: joiStringMap(joi.string()).description(
+            dedent`
+            Exposes the \`nodeSelector\` field on the PodSpec of the Nix pods. This allows you to constrain the Nix pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are specifically set under \`util.nodeSelector\`.
+
+            [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
+          `
+          ),
+          tolerations: joiSparseArray(tolerationSchema()).description(
+            deline`Specify tolerations to apply to each Nix builder pod. Useful to control which nodes in a cluster can run builds.
+          The same tolerations will be used for each util pod unless they are specifically set under \`util.tolerations\``
+          ),
+          annotations: annotationsSchema().description(
+            deline`Specify annotations to apply to each Nix builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+          The same annotations will be used for each util pod unless they are specifically set under \`util.annotations\``
+          ),
+          serviceAccountAnnotations: serviceAccountAnnotationsSchema().description(
+            "Specify annotations to apply to the Kubernetes service account used by Nix. This can be useful to set up IRSA with in-cluster building."
+          ),
+          util: joi.object().keys({
+            tolerations: joiSparseArray(tolerationSchema()).description(
+              "Specify tolerations to apply to each garden-util pod."
+            ),
+            annotations: annotationsSchema().description(
+              "Specify annotations to apply to each garden-util pod and deployments."
+            ),
+            nodeSelector: joiStringMap(joi.string()).description(
+              "Specify the nodeSelector constraints for each garden-util pod."
+            ),
+          }),
+        })
+        .default(() => {})
+        .description("Configuration options for the `nix` build mode."),
       defaultHostname: joi
         .string()
         .description("A default hostname to use when no hostname is explicitly configured for a service.")

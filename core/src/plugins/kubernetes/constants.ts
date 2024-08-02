@@ -58,6 +58,8 @@ export const buildkitRootlessImageName: DockerImageWithDigest =
   "gardendev/buildkit:v0.13.2-rootless@sha256:b6b9c4c48bb9645c3bfa6e9241ac3d963ef607dd6c1ce3ebe1ea725cb5138c16"
 export const defaultKanikoImageName: DockerImageWithDigest =
   "gcr.io/kaniko-project/executor:v1.11.0-debug@sha256:32ba2214921892c2fa7b5f9c4ae6f8f026538ce6b2105a93a36a8b5ee50fe517"
+export const defaultNixImageName: DockerImageWithDigest =
+  "nixos/nix:2.22.3@sha256:270fa2e107fd1ede0a19be950cf9ff7b23642e8f4f883a8a989e1649c3a10e71"
 export const defaultGardenIngressControllerDefaultBackendImage: DockerImageWithDigest =
   "gardendev/default-backend:v0.1@sha256:1b02920425eea569c6be53bb2e3d2c1182243212de229be375da7a93594498cf"
 export const defaultGardenIngressControllerImage: DockerImageWithDigest =

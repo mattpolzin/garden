@@ -425,6 +425,16 @@ POSIX-style name of a Dockerfile, relative to the action's source root.
 | ----------- | -------------- | -------- |
 | `posixPath` | `"Dockerfile"` | No       |
 
+### `spec.nixfile`
+
+[spec](#spec) > nixfile
+
+POSIX-style name of a Nix file that produces a derivation that builds a Docker image. The path is relative to the action's source root.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
+
 ### `spec.projectType`
 
 [spec](#spec) > projectType

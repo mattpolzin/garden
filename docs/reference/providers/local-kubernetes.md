@@ -31,9 +31,9 @@ providers:
     environments:
 
     # Choose the mechanism for building container images before deploying. By default your local Docker daemon is
-    # used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container
-    # images there. This removes the need to run Docker locally, and allows you to share layer and image caches
-    # between multiple developers, as well as between your development and CI workflows.
+    # used, but you can set it to `cluster-buildkit`, `kaniko`, or `nix` to sync files to the cluster, and build
+    # container images there. This removes the need to run Docker locally, and allows you to share layer and image
+    # caches between multiple developers, as well as between your development and CI workflows.
     #
     # For more details on all the different options and what makes sense to use for your setup, please check out the
     # [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/guides/in-cluster-building).
@@ -304,6 +304,98 @@ providers:
         # Specify the nodeSelector constraints for each garden-util pod.
         nodeSelector:
 
+    # Configuration options for the `nix` build mode.
+    nix:
+      # Specify extra flags to pass to `nix-build`.
+      extraFlags:
+
+      # Change the nix image (repository/image:tag) to use when building in Nix mode.
+      image: >-
+  nixos/nix:2.22.3@sha256:270fa2e107fd1ede0a19be950cf9ff7b23642e8f4f883a8a989e1649c3a10e71
+
+      # Choose the namespace where the Nix pods will be run. Defaults to the project namespace.
+      namespace:
+
+      # Exposes the `nodeSelector` field on the PodSpec of the Nix pods. This allows you to constrain the Nix pods to
+      # only run on particular nodes. The same nodeSelector will be used for each util pod unless they are
+      # specifically set under `util.nodeSelector`.
+      #
+      # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes
+      # guide to assigning pods to nodes.
+      nodeSelector:
+
+      # Specify tolerations to apply to each Nix builder pod. Useful to control which nodes in a cluster can run
+      # builds. The same tolerations will be used for each util pod unless they are specifically set under
+      # `util.tolerations`
+      tolerations:
+        - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+          # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+          effect:
+
+          # "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+          # If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+          key:
+
+          # "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal".
+          # Defaults to
+          # "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+          # particular category.
+          operator: Equal
+
+          # "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+          # otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+          # the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+          # by the system.
+          tolerationSeconds:
+
+          # "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be
+          # empty,
+          # otherwise just a regular string.
+          value:
+
+      # Specify annotations to apply to each Nix builder pod. Annotations may have an effect on the behaviour of
+      # certain components, for example autoscalers. The same annotations will be used for each util pod unless they
+      # are specifically set under `util.annotations`
+      annotations:
+
+      # Specify annotations to apply to the Kubernetes service account used by Nix. This can be useful to set up IRSA
+      # with in-cluster building.
+      serviceAccountAnnotations:
+
+      util:
+        # Specify tolerations to apply to each garden-util pod.
+        tolerations:
+          - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+            # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+            effect:
+
+            # "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+            # If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+            key:
+
+            # "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal".
+            # Defaults to
+            # "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+            # particular category.
+            operator: Equal
+
+            # "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+            # otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+            # the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+            # by the system.
+            tolerationSeconds:
+
+            # "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be
+            # empty,
+            # otherwise just a regular string.
+            value:
+
+        # Specify annotations to apply to each garden-util pod and deployments.
+        annotations:
+
+        # Specify the nodeSelector constraints for each garden-util pod.
+        nodeSelector:
+
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
 
@@ -522,13 +614,13 @@ providers:
 
 [providers](#providers) > buildMode
 
-Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
+Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit`, `kaniko`, or `nix` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
 For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/guides/in-cluster-building).
 
-| Type     | Allowed Values                               | Default          | Required |
-| -------- | -------------------------------------------- | ---------------- | -------- |
-| `string` | "local-docker", "kaniko", "cluster-buildkit" | `"local-docker"` | Yes      |
+| Type     | Allowed Values                                      | Default          | Required |
+| -------- | --------------------------------------------------- | ---------------- | -------- |
+| `string` | "local-docker", "kaniko", "cluster-buildkit", "nix" | `"local-docker"` | Yes      |
 
 ### `providers[].clusterBuildkit`
 
@@ -1167,6 +1259,274 @@ providers:
 ### `providers[].kaniko.util.nodeSelector`
 
 [providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > nodeSelector
+
+Specify the nodeSelector constraints for each garden-util pod.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].nix`
+
+[providers](#providers) > nix
+
+Configuration options for the `nix` build mode.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].nix.extraFlags[]`
+
+[providers](#providers) > [nix](#providersnix) > extraFlags
+
+Specify extra flags to pass to `nix-build`.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `providers[].nix.image`
+
+[providers](#providers) > [nix](#providersnix) > image
+
+Change the nix image (repository/image:tag) to use when building in Nix mode.
+
+| Type     | Default                                                                                      | Required |
+| -------- | -------------------------------------------------------------------------------------------- | -------- |
+| `string` | `"nixos/nix:2.22.3@sha256:270fa2e107fd1ede0a19be950cf9ff7b23642e8f4f883a8a989e1649c3a10e71"` | No       |
+
+### `providers[].nix.namespace`
+
+[providers](#providers) > [nix](#providersnix) > namespace
+
+Choose the namespace where the Nix pods will be run. Defaults to the project namespace.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].nix.nodeSelector`
+
+[providers](#providers) > [nix](#providersnix) > nodeSelector
+
+Exposes the `nodeSelector` field on the PodSpec of the Nix pods. This allows you to constrain the Nix pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are specifically set under `util.nodeSelector`.
+
+[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].nix.tolerations[]`
+
+[providers](#providers) > [nix](#providersnix) > tolerations
+
+Specify tolerations to apply to each Nix builder pod. Useful to control which nodes in a cluster can run builds. The same tolerations will be used for each util pod unless they are specifically set under `util.tolerations`
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `providers[].nix.tolerations[].effect`
+
+[providers](#providers) > [nix](#providersnix) > [tolerations](#providersnixtolerations) > effect
+
+"Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].nix.tolerations[].key`
+
+[providers](#providers) > [nix](#providersnix) > [tolerations](#providersnixtolerations) > key
+
+"Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].nix.tolerations[].operator`
+
+[providers](#providers) > [nix](#providersnix) > [tolerations](#providersnixtolerations) > operator
+
+"Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
+"Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+particular category.
+
+| Type     | Default   | Required |
+| -------- | --------- | -------- |
+| `string` | `"Equal"` | No       |
+
+### `providers[].nix.tolerations[].tolerationSeconds`
+
+[providers](#providers) > [nix](#providersnix) > [tolerations](#providersnixtolerations) > tolerationSeconds
+
+"TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+by the system.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].nix.tolerations[].value`
+
+[providers](#providers) > [nix](#providersnix) > [tolerations](#providersnixtolerations) > value
+
+"Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
+otherwise just a regular string.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].nix.annotations`
+
+[providers](#providers) > [nix](#providersnix) > annotations
+
+Specify annotations to apply to each Nix builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. The same annotations will be used for each util pod unless they are specifically set under `util.annotations`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - nix:
+      ...
+      annotations:
+          cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
+### `providers[].nix.serviceAccountAnnotations`
+
+[providers](#providers) > [nix](#providersnix) > serviceAccountAnnotations
+
+Specify annotations to apply to the Kubernetes service account used by Nix. This can be useful to set up IRSA with in-cluster building.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - nix:
+      ...
+      serviceAccountAnnotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role
+```
+
+### `providers[].nix.util`
+
+[providers](#providers) > [nix](#providersnix) > util
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].nix.util.tolerations[]`
+
+[providers](#providers) > [nix](#providersnix) > [util](#providersnixutil) > tolerations
+
+Specify tolerations to apply to each garden-util pod.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `providers[].nix.util.tolerations[].effect`
+
+[providers](#providers) > [nix](#providersnix) > [util](#providersnixutil) > [tolerations](#providersnixutiltolerations) > effect
+
+"Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].nix.util.tolerations[].key`
+
+[providers](#providers) > [nix](#providersnix) > [util](#providersnixutil) > [tolerations](#providersnixutiltolerations) > key
+
+"Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].nix.util.tolerations[].operator`
+
+[providers](#providers) > [nix](#providersnix) > [util](#providersnixutil) > [tolerations](#providersnixutiltolerations) > operator
+
+"Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
+"Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+particular category.
+
+| Type     | Default   | Required |
+| -------- | --------- | -------- |
+| `string` | `"Equal"` | No       |
+
+### `providers[].nix.util.tolerations[].tolerationSeconds`
+
+[providers](#providers) > [nix](#providersnix) > [util](#providersnixutil) > [tolerations](#providersnixutiltolerations) > tolerationSeconds
+
+"TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+by the system.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].nix.util.tolerations[].value`
+
+[providers](#providers) > [nix](#providersnix) > [util](#providersnixutil) > [tolerations](#providersnixutiltolerations) > value
+
+"Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
+otherwise just a regular string.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].nix.util.annotations`
+
+[providers](#providers) > [nix](#providersnix) > [util](#providersnixutil) > annotations
+
+Specify annotations to apply to each garden-util pod and deployments.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - nix:
+      ...
+      util:
+        ...
+        annotations:
+            cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
+### `providers[].nix.util.nodeSelector`
+
+[providers](#providers) > [nix](#providersnix) > [util](#providersnixutil) > nodeSelector
 
 Specify the nodeSelector constraints for each garden-util pod.
 

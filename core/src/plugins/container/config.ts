@@ -1014,6 +1014,7 @@ export interface ContainerBuildActionSpec {
   buildArgs: PrimitiveMap
   dockerfile: string
   extraFlags: string[]
+  nixfile?: string
   secrets?: Record<string, Secret>
   localId?: string
   publishId?: string
@@ -1099,6 +1100,10 @@ export const containerBuildSpecSchema = createSchema({
       .subPathOnly()
       .default(defaultDockerfileName)
       .description("POSIX-style name of a Dockerfile, relative to the action's source root."),
+    nixfile: joi
+      .posixPath()
+      .subPathOnly()
+      .description("POSIX-style name of a Nix file that produces a derivation that builds a Docker image. The path is relative to the action's source root."),
     targetStage: joi.string().description(deline`
       For multi-stage Dockerfiles, specify which image/stage to build (see
       https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
